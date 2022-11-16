@@ -1,0 +1,42 @@
+{
+  "name": "vite-es6-ts",
+  "version": "1.0.0",
+  "description": "基于threejs的gltf3d模型浏览工具, 以及3d场景和模型常见交互方法",
+  "main": "./build/src/index.js",
+  "scripts": {
+    "dev": "vite --mode development",
+    "build": " vite build --mode production",
+    "preview": "vite preview",
+    "lint": "eslint . --ext .vue,.ts,.jsx,.tsx --fix",
+    "format": "prettier --write ./**/*.{vue,ts,tsx,js,jsx,css,less,scss,json,md}",
+    "prepare": "husky install",
+    "public": "tsc && npm public"
+  },
+  "keywords": [
+    "typescript",
+    "three",
+    "gltf"
+  ],
+  "author": "fhtwl",
+  "license": "ISC",
+  "devDependencies": {
+    "@types/node": "^18.7.18",
+    "@types/three": "^0.146.0",
+    "@typescript-eslint/eslint-plugin": "^5.37.0",
+    "@typescript-eslint/parser": "^5.37.0",
+    "eslint": "^8.23.1",
+    "eslint-config-prettier": "^8.5.0",
+    "eslint-plugin-prettier": "^4.2.1",
+    "less": "^4.1.3",
+    "prettier": "^2.7.1",
+    "typescript": "^4.8.3",
+    "vite": "^3.1.1",
+    "vite-plugin-eslint": "^1.8.1",
+    "vite-plugin-html": "^3.2.0"
+  },
+  "dependencies": {
+    "@types/stats.js": "^0.17.0",
+    "stats.js": "^0.17.0",
+    "three": "^0.146.0"
+  }
+}
