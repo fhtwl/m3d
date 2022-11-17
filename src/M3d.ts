@@ -1,9 +1,33 @@
-import * as THREE from "three"
+import {
+  PerspectiveCamera,
+  Renderer,
+  Scene,
+  Group,
+  Clock,
+  HemisphereLight,
+  DirectionalLight,
+  WebGLRenderer,
+  Color,
+  Vector3,
+  MathUtils,
+  AnimationMixer,
+  Box3,
+  Raycaster,
+  Vector2,
+  Intersection,
+  Object3D,
+  Mesh,
+  Event,
+  Cache,
+} from "three"
 
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls"
 import { GLTF, GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader"
 import { CSS2DObject, CSS2DRenderer } from "three/examples/jsm/renderers/CSS2DRenderer"
 import Stats from "stats.js"
+// import { createBackground } from "./utils/index.js"
+
+Cache.enabled = true
 
 interface Options extends ProgramOptions {
   el: HTMLElement
@@ -20,15 +44,15 @@ export default class M3d {
   public program!: WebGLProgram
   root!: HTMLElement
   container: HTMLElement
-  camera!: THREE.PerspectiveCamera
-  renderer!: THREE.Renderer
+  camera!: PerspectiveCamera
+  renderer!: Renderer
   controls!: OrbitControls
-  scene!: THREE.Scene
+  scene!: Scene
   stats!: Stats
-  popupGroup!: THREE.Group
+  popupGroup!: Group
   labelRenderer!: CSS2DRenderer
   mixers: any = []
-  clock!: THREE.Clock
+  clock!: Clock
   constructor(el: HTMLElement, options?: Options) {
     this.container = el
     console.log(options)
@@ -70,13 +94,18 @@ export default class M3d {
     return MODE === "development"
   }
 
+  /**
+   * 创建States
+   */
   private createStates() {
     const { getIsDev, container } = this
     if (getIsDev()) {
       const stats = new Stats()
       stats.showPanel(0) // 0: fps, 1: ms, 2: mb, 3+: custom
+
       container.appendChild(stats.dom)
       this.stats = stats
+      ;[].forEach.call(this.stats.dom.children, (child: HTMLDivElement) => (child.style.display = ""))
     }
   }
 
@@ -88,7 +117,7 @@ export default class M3d {
     const skyColor = 0xb1e1ff // light blue
     const groundColor = 0xb97a20 // brownish orange
     const intensity = 0.6
-    const light = new THREE.HemisphereLight(skyColor, groundColor, intensity)
+    const light = new HemisphereLight(skyColor, groundColor, intensity)
     scene.add(light)
   }
 
@@ -96,14 +125,19 @@ export default class M3d {
    * 创建方向光，模拟太阳光
    */
   private createDirectionalLight() {
-    const { scene } = this
+    const { camera } = this
 
     const color = 0xffffff
-    const intensity = 0.8
-    const light = new THREE.DirectionalLight(color, intensity)
+    const intensity = 1
+    const light = new DirectionalLight(color, intensity)
     light.position.set(5, 10, 2)
-    scene.add(light)
-    scene.add(light.target)
+    camera.add(light)
+    // scene.add(light.target)
+
+    const light2 = new DirectionalLight(0xffffff, 0.8 * Math.PI)
+    light2.position.set(0.5, 0, 0.866) // ~60º
+    light2.name = "main_light"
+    camera.add(light2)
   }
 
   /**
@@ -111,7 +145,7 @@ export default class M3d {
    */
   private createRenderer() {
     const { width, height } = this
-    const renderer = new THREE.WebGLRenderer({
+    const renderer = new WebGLRenderer({
       alpha: true,
       antialias: true,
       preserveDrawingBuffer: true,
@@ -129,12 +163,12 @@ export default class M3d {
   }
 
   private createScene() {
-    this.scene = new THREE.Scene()
-    this.scene.background = new THREE.Color("black")
+    this.scene = new Scene()
+    this.scene.background = new Color("black")
   }
 
   private createCamera() {
-    const camera = new THREE.PerspectiveCamera(40, this.width / this.height, 0.1, 3000)
+    const camera = new PerspectiveCamera(40, this.width / this.height, 0.1, 3000)
     // camera.position.set(0, 0, -28)
     camera.position.set(3.55, 0, -328)
     this.scene.add(camera) // this is required cause there is a light under camera
@@ -143,22 +177,34 @@ export default class M3d {
 
   private createControls() {
     const controls = new OrbitControls(this.camera, this.labelRenderer.domElement)
-    controls.rotateSpeed = 0.3
-    controls.autoRotate = false
-    controls.enableZoom = false
-    controls.enablePan = false
-    controls.enabled = true
+    controls.rotateSpeed = 1
+    controls.autoRotate = false // 禁用自转
+    controls.enableZoom = true // 允许缩放
+    controls.enablePan = true // 允许平移
+    controls.keyPanSpeed = 7.0 // 平移速度
+    controls.enabled = true // 鼠标控制是否可用
+    controls.enableDamping = true // 关闭阻尼效果
+    controls.dampingFactor = 0.1 // 惯性滑动
     this.controls = controls
+    // controls.addEventListener("change", this.render.bind(this))
+    window.addEventListener("resize", this.resize.bind(this), false)
   }
 
   private loop() {
-    requestAnimationFrame(this.loop.bind(this))
-    this.animate()
+    this.controls.update()
     this.render()
+    requestAnimationFrame(this.loop.bind(this))
   }
 
-  private animate() {
-    this.controls.update()
+  resize() {
+    const { container, camera, renderer, labelRenderer } = this
+    const { clientHeight, clientWidth } = container
+
+    camera.aspect = clientWidth / clientHeight
+    camera.updateProjectionMatrix()
+    // this.vignette.style({ aspect: this.camera.aspect })
+    renderer.setSize(clientWidth, clientHeight)
+    labelRenderer.setSize(clientWidth, clientHeight)
   }
 
   resizeRendererToDisplaySize() {
@@ -173,33 +219,30 @@ export default class M3d {
   }
 
   private createClock() {
-    this.clock = new THREE.Clock()
+    this.clock = new Clock()
   }
 
   private render() {
-    const { scene, camera, renderer, getIsDev, stats, labelRenderer, clock, mixers } = this
+    const { scene, camera, renderer, getIsDev, stats, labelRenderer, clock, mixers, resize } = this
     const isDev = getIsDev()
     if (isDev) {
-      stats.begin()
-    }
-    if (this.resizeRendererToDisplaySize()) {
-      const canvas = renderer.domElement
-      camera.aspect = canvas.clientWidth / canvas.clientHeight
-      camera.updateProjectionMatrix()
+      stats.update()
     }
 
-    const delta = clock.getDelta()
-    for (let i = 0; i < mixers.length; i++) {
-      // 重复播放动画
-      mixers[i].update(delta)
-    }
+    // if (this.resizeRendererToDisplaySize()) {
+    //   const canvas = renderer.domElement
+    //   camera.aspect = canvas.clientWidth / canvas.clientHeight
+    //   camera.updateProjectionMatrix()
+    // }
+
+    // const delta = clock.getDelta()
+    // for (let i = 0; i < mixers.length; i++) {
+    //   // 重复播放动画
+    //   mixers[i].update(delta)
+    // }
 
     labelRenderer.render(scene, camera)
     renderer.render(scene, camera)
-
-    if (isDev) {
-      stats.end()
-    }
   }
 
   /**
@@ -208,7 +251,7 @@ export default class M3d {
    * @param y
    * @param z
    */
-  public setCamera(ve3: THREE.Vector3 | number, y?: number, z?: number) {
+  public setCamera(ve3: Vector3 | number, y?: number, z?: number) {
     if (typeof ve3 === "number") {
       this.camera.position.set(ve3, y!, z!)
     } else {
@@ -216,16 +259,13 @@ export default class M3d {
     }
   }
 
-  frameArea(sizeToFitOnScreen: number, boxSize: number, boxCenter: THREE.Vector3, camera: THREE.PerspectiveCamera) {
+  frameArea(sizeToFitOnScreen: number, boxSize: number, boxCenter: Vector3, camera: PerspectiveCamera) {
     const halfSizeToFitOnScreen = sizeToFitOnScreen * 0.5
-    const halfFovY = THREE.MathUtils.degToRad(camera.fov * 0.5)
+    const halfFovY = MathUtils.degToRad(camera.fov * 0.5)
     const distance = halfSizeToFitOnScreen / Math.tan(halfFovY)
     // compute a unit vector that points in the direction the camera is now
     // in the xz plane from the center of the box
-    const direction = new THREE.Vector3()
-      .subVectors(camera.position, boxCenter)
-      .multiply(new THREE.Vector3(1, 0, 1))
-      .normalize()
+    const direction = new Vector3().subVectors(camera.position, boxCenter).multiply(new Vector3(1, 0, 1)).normalize()
 
     // move the camera to a position distance units way from the center
     // in whatever direction the camera was from the center already
@@ -247,7 +287,7 @@ export default class M3d {
    * @param url
    * @returns
    */
-  async loadGLTFModel(url: string): Promise<THREE.Scene> {
+  async loadGLTFModel(url: string): Promise<Scene> {
     const gltfLoader = new GLTFLoader()
     const onProgress = (xhr: ProgressEvent<EventTarget>) => {
       console.log(`${(xhr.loaded / xhr.total) * 100}% loaded`)
@@ -260,11 +300,11 @@ export default class M3d {
         url,
         (gltf: GLTF) => {
           const { scene, controls, camera, frameArea } = this
-          const root: THREE.Scene = gltf.scene as unknown as THREE.Scene
+          const root: Scene = gltf.scene as unknown as Scene
           scene.add(root)
 
           // 调用动画
-          const mixer = new THREE.AnimationMixer(gltf.scene.children[2])
+          const mixer = new AnimationMixer(gltf.scene.children[2])
           const mixers = []
           if (gltf.animations.length > 0) {
             mixer.clipAction(gltf.animations[0]).setDuration(1).play()
@@ -276,10 +316,10 @@ export default class M3d {
 
           // compute the box that contains all the stuff
           // from root and below
-          const box = new THREE.Box3().setFromObject(root)
+          const box = new Box3().setFromObject(root)
 
-          const boxSize = box.getSize(new THREE.Vector3()).length()
-          const boxCenter = box.getCenter(new THREE.Vector3())
+          const boxSize = box.getSize(new Vector3()).length()
+          const boxCenter = box.getCenter(new Vector3())
           frameArea(boxSize * 0.5, boxSize, boxCenter, camera)
 
           // update the Trackball controls to handle the new size
@@ -299,7 +339,7 @@ export default class M3d {
    */
   private createPopupGroup() {
     const { scene } = this
-    const group = new THREE.Group()
+    const group = new Group()
     scene.add(group)
     this.popupGroup = group
   }
@@ -317,7 +357,7 @@ export default class M3d {
     container.appendChild(labelRenderer.domElement)
   }
 
-  addPopup(dom: HTMLElement | string, position: THREE.Vector3, options?: PopupOptions): CSS2DObject {
+  addPopup(dom: HTMLElement | string, position: Vector3, options?: PopupOptions): CSS2DObject {
     console.log(options)
     const { popupGroup, container } = this
     let div
@@ -355,8 +395,8 @@ export default class M3d {
   getIntersection(event: MouseEvent) {
     // EventTarget
     const { container, camera, width, height } = this
-    const raycaster = new THREE.Raycaster()
-    const mouse = new THREE.Vector2()
+    const raycaster = new Raycaster()
+    const mouse = new Vector2()
     // 通过鼠标点击的位置计算出raycaster所需要的点的位置，以屏幕中心为原点，值的范围为-1到1.
     const div3DLeft = container.getBoundingClientRect().left
     const div3DTop = container.getBoundingClientRect().top
@@ -372,17 +412,17 @@ export default class M3d {
    * 获取鼠标事件获取到的元素
    * @param raycaster
    */
-  raycastMeshes(raycaster: THREE.Raycaster) {
+  raycastMeshes(raycaster: Raycaster) {
     const { scene, filtersVisible } = this
-    const intersects: THREE.Intersection<THREE.Object3D<THREE.Event>>[] = []
+    const intersects: Intersection<Object3D<Event>>[] = []
     // 对场景及其子节点遍历
     scene.children.forEach((item) => {
       // 如果场景的子节点是Group或者Scene对象
-      if (item instanceof THREE.Group || item instanceof THREE.Scene) {
+      if (item instanceof Group || item instanceof Scene) {
         // 场景子节点及其后代，被射线穿过的模型的数组集合
         const rayArr = raycaster.intersectObjects(item.children, true)
         intersects.push(...rayArr)
-      } else if (item instanceof THREE.Mesh) {
+      } else if (item instanceof Mesh) {
         // 如果场景的子节点是Mesh网格对象，场景子节点被射线穿过的模型的数组集合
         intersects.push(...raycaster.intersectObject(item))
       }
@@ -398,9 +438,7 @@ export default class M3d {
    * @param arr
    * @returns
    */
-  filtersVisible(
-    arr: THREE.Intersection<THREE.Object3D<THREE.Event>>[]
-  ): THREE.Intersection<THREE.Object3D<THREE.Event>>[] {
+  filtersVisible(arr: Intersection<Object3D<Event>>[]): Intersection<Object3D<Event>>[] {
     let arrList = arr
     if (arr && arr.length > 0) {
       arrList = []
@@ -415,7 +453,7 @@ export default class M3d {
   // /**
   //  * 获取拾取到的元素，并执行回调函数
   //  * @param { Function } callback
-  //  * @param { THREE.Object3D } intersects
+  //  * @param { Object3D } intersects
   //  */
   // getNode(callback, intersects, event) {
   //   // let selectedObjects = null
@@ -429,12 +467,12 @@ export default class M3d {
 
   // showPopup() {
   //   const { popupGroup, scene } = this
-  //   const moonGeometry = new THREE.SphereGeometry(1, 16, 16)
-  //   const moonMaterial = new THREE.MeshPhongMaterial({
+  //   const moonGeometry = new SphereGeometry(1, 16, 16)
+  //   const moonMaterial = new MeshPhongMaterial({
   //     shininess: 5,
   //     // map: textureLoader.load("textures/planets/moon_1024.jpg"),
   //   })
-  //   const moon = new THREE.Mesh(moonGeometry, moonMaterial)
+  //   const moon = new Mesh(moonGeometry, moonMaterial)
   //   const earthDiv = document.createElement("div")
   //   earthDiv.className = "label"
   //   earthDiv.textContent = "Earth"

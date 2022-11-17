@@ -11,12 +11,6 @@ import M3d from "./M3d"
 export async function init() {
   const app = document.getElementById("app")!
   const m3d = new M3d(app)
-  // m3d.setCamera(0, 1000, 1500)
-  const controls = m3d.controls
-  controls.enableZoom = true // 禁用放大
-  controls.enablePan = false // 禁用双指缩放
-  // controls.enableDamping = true // 开启阻尼效果
-  // controls.rotateSpeed = 0.25 // 旋转方向取反，使内部拖拽旋转方向一致
 
   const url = "https://static.fhtwl.cc/test/gltf/scene.gltf"
 
@@ -30,24 +24,25 @@ export async function init() {
     //   })
     // })
   })
-  // app.addEventListener("click", (e: MouseEvent) => {
-  //   const intersection = m3d.getIntersection(e)
+  app.addEventListener("click", (e: MouseEvent) => {
+    const intersection = m3d.getIntersection(e)
 
-  //   if (intersection) {
-  //     console.log(intersection)
-  //     m3d.clearPopups()
-  //     if (intersection.object?.parent.name.indexOf("Car") > -1) {
-  //       const popup = m3d.addPopup(
-  //         `
-  //       <div style='width: 100px;height: 100px;background: #fff;'>
-  //         ${intersection.object?.parent.name}
-  //       </div>
-  //     `,
-  //         intersection.point
-  //       )
-  //     }
-  //   }
-  // })
+    if (intersection) {
+      console.log(intersection)
+      m3d.clearPopups()
+      console.log(intersection)
+      if (intersection.object?.parent!.name?.toLocaleLowerCase().indexOf("car") > -1) {
+        const popup = m3d.addPopup(
+          `
+        <div style='width: 100px;height: 100px;background: #fff;'>
+          ${intersection.object?.parent!.name}
+        </div>
+      `,
+          intersection.point
+        )
+      }
+    }
+  })
 }
 
 init()
