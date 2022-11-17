@@ -15,7 +15,6 @@ interface ProgramOptions {
 }
 
 export default class M3d {
-  public version = "0.0.0"
   public gl!: WebGLRenderingContext
   canvas!: HTMLCanvasElement
   public program!: WebGLProgram
@@ -164,7 +163,6 @@ export default class M3d {
 
   resizeRendererToDisplaySize() {
     const { width, height, renderer, labelRenderer } = this
-    console.log(renderer.domElement)
     const canvas = renderer.domElement
     const needResize = canvas.width !== width || canvas.height !== height
     if (needResize) {
@@ -179,12 +177,12 @@ export default class M3d {
   }
 
   private render() {
-    const { scene, camera, renderer, resizeRendererToDisplaySize, getIsDev, stats, labelRenderer, clock, mixers } = this
+    const { scene, camera, renderer, getIsDev, stats, labelRenderer, clock, mixers } = this
     const isDev = getIsDev()
     if (isDev) {
       stats.begin()
     }
-    if (resizeRendererToDisplaySize.bind(this)) {
+    if (this.resizeRendererToDisplaySize()) {
       const canvas = renderer.domElement
       camera.aspect = canvas.clientWidth / canvas.clientHeight
       camera.updateProjectionMatrix()

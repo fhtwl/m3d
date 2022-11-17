@@ -1,5 +1,5 @@
 {
-  "name": "vite-es6-ts",
+  "name": "m3d",
   "version": "1.0.0",
   "description": "基于threejs的gltf3d模型浏览工具, 以及3d场景和模型常见交互方法",
   "main": "./build/src/index.js",
@@ -10,7 +10,7 @@
     "lint": "eslint . --ext .vue,.ts,.jsx,.tsx --fix",
     "format": "prettier --write ./**/*.{vue,ts,tsx,js,jsx,css,less,scss,json,md}",
     "prepare": "husky install",
-    "public": "tsc && npm public"
+    "public": "tsc && npm publish"
   },
   "keywords": [
     "typescript",
@@ -19,6 +19,10 @@
   ],
   "author": "fhtwl",
   "license": "ISC",
+  "repository": {
+    "type": "git",
+    "url": "git@github.com:fhtwl/m3d.git"
+  },
   "devDependencies": {
     "@types/node": "^18.7.18",
     "@types/three": "^0.146.0",
