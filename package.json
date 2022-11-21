@@ -1,6 +1,6 @@
 {
   "name": "m3d",
-  "version": "1.0.0",
+  "version": "1.0.2",
   "description": "基于threejs的gltf3d模型浏览工具, 以及3d场景和模型常见交互方法",
   "main": "./build/src/index.js",
   "scripts": {
@@ -9,8 +9,7 @@
     "preview": "vite preview",
     "lint": "eslint . --ext .vue,.ts,.jsx,.tsx --fix",
     "format": "prettier --write ./**/*.{vue,ts,tsx,js,jsx,css,less,scss,json,md}",
-    "prepare": "husky install",
-    "public": "tsc && npm publish"
+    "prepare": "husky install"
   },
   "keywords": [
     "typescript",

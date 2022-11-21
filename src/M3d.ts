@@ -1,6 +1,5 @@
 import {
   PerspectiveCamera,
-  Renderer,
   Scene,
   Group,
   Clock,
@@ -9,9 +8,6 @@ import {
   WebGLRenderer,
   Color,
   Vector3,
-  MathUtils,
-  AnimationMixer,
-  Box3,
   Raycaster,
   Vector2,
   Intersection,
@@ -20,12 +16,14 @@ import {
   Event,
   Cache,
 } from "three"
-
+import Plugins from "./Plugins"
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls"
-import { GLTF, GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader"
-import { CSS2DObject, CSS2DRenderer } from "three/examples/jsm/renderers/CSS2DRenderer"
-import Stats from "stats.js"
+import { CSS2DRenderer } from "three/examples/jsm/renderers/CSS2DRenderer"
+
 // import { createBackground } from "./utils/index.js"
+
+import PopupManager from "./Manager/Popup"
+import LoaderManager from "./Manager/Loader"
 
 Cache.enabled = true
 
@@ -42,17 +40,16 @@ export default class M3d {
   public gl!: WebGLRenderingContext
   canvas!: HTMLCanvasElement
   public program!: WebGLProgram
-  root!: HTMLElement
   container: HTMLElement
   camera!: PerspectiveCamera
-  renderer!: Renderer
+  renderer!: WebGLRenderer
   controls!: OrbitControls
   scene!: Scene
-  stats!: Stats
-  popupGroup!: Group
   labelRenderer!: CSS2DRenderer
-  mixers: any = []
+
   clock!: Clock
+  PopupManager!: typeof PopupManager
+  LoaderManager!: typeof LoaderManager
   constructor(el: HTMLElement, options?: Options) {
     this.container = el
     console.log(options)
@@ -72,16 +69,16 @@ export default class M3d {
    */
   private init() {
     this.createRenderer()
-    this.createStates()
+    this.initPlugin()
     this.createScene()
     this.createCamera()
     this.createClock()
     this.createHemisphereLight()
     this.createDirectionalLight()
-    this.createPopupGroup()
     this.create2DRenderer()
     this.createControls()
 
+    this.initManager()
     this.loop()
   }
 
@@ -95,18 +92,23 @@ export default class M3d {
   }
 
   /**
-   * 创建States
+   * 初始化插件
    */
-  private createStates() {
-    const { getIsDev, container } = this
-    if (getIsDev()) {
-      const stats = new Stats()
-      stats.showPanel(0) // 0: fps, 1: ms, 2: mb, 3+: custom
+  initPlugin() {
+    new Plugins({
+      container: this.container,
+    })
+  }
 
-      container.appendChild(stats.dom)
-      this.stats = stats
-      ;[].forEach.call(this.stats.dom.children, (child: HTMLDivElement) => (child.style.display = ""))
-    }
+  /**
+   * 初始化业务管理
+   */
+  initManager() {
+    this.PopupManager = PopupManager
+    PopupManager.init(this)
+
+    this.LoaderManager = LoaderManager
+    LoaderManager.init(this)
   }
 
   /**
@@ -183,7 +185,7 @@ export default class M3d {
     controls.enablePan = true // 允许平移
     controls.keyPanSpeed = 7.0 // 平移速度
     controls.enabled = true // 鼠标控制是否可用
-    controls.enableDamping = true // 关闭阻尼效果
+    controls.enableDamping = false // 关闭阻尼效果
     controls.dampingFactor = 0.1 // 惯性滑动
     this.controls = controls
     // controls.addEventListener("change", this.render.bind(this))
@@ -223,22 +225,12 @@ export default class M3d {
   }
 
   private render() {
-    const { scene, camera, renderer, getIsDev, stats, labelRenderer, clock, mixers, resize } = this
-    const isDev = getIsDev()
-    if (isDev) {
-      stats.update()
-    }
+    const { scene, camera, renderer, labelRenderer, clock, resize } = this
 
     // if (this.resizeRendererToDisplaySize()) {
     //   const canvas = renderer.domElement
     //   camera.aspect = canvas.clientWidth / canvas.clientHeight
     //   camera.updateProjectionMatrix()
-    // }
-
-    // const delta = clock.getDelta()
-    // for (let i = 0; i < mixers.length; i++) {
-    //   // 重复播放动画
-    //   mixers[i].update(delta)
     // }
 
     labelRenderer.render(scene, camera)
@@ -259,91 +251,6 @@ export default class M3d {
     }
   }
 
-  frameArea(sizeToFitOnScreen: number, boxSize: number, boxCenter: Vector3, camera: PerspectiveCamera) {
-    const halfSizeToFitOnScreen = sizeToFitOnScreen * 0.5
-    const halfFovY = MathUtils.degToRad(camera.fov * 0.5)
-    const distance = halfSizeToFitOnScreen / Math.tan(halfFovY)
-    // compute a unit vector that points in the direction the camera is now
-    // in the xz plane from the center of the box
-    const direction = new Vector3().subVectors(camera.position, boxCenter).multiply(new Vector3(1, 0, 1)).normalize()
-
-    // move the camera to a position distance units way from the center
-    // in whatever direction the camera was from the center already
-    camera.position.copy(direction.multiplyScalar(distance).add(boxCenter))
-
-    // pick some near and far values for the frustum that
-    // will contain the box.
-    camera.near = boxSize / 100
-    camera.far = boxSize * 100
-
-    camera.updateProjectionMatrix()
-
-    // point the camera to look at the center of the box
-    camera.lookAt(boxCenter.x, boxCenter.y, boxCenter.z)
-  }
-
-  /**
-   * 加载gltf模型
-   * @param url
-   * @returns
-   */
-  async loadGLTFModel(url: string): Promise<Scene> {
-    const gltfLoader = new GLTFLoader()
-    const onProgress = (xhr: ProgressEvent<EventTarget>) => {
-      console.log(`${(xhr.loaded / xhr.total) * 100}% loaded`)
-    }
-    const onError = (res: ErrorEvent) => {
-      console.log(res)
-    }
-    return new Promise((resolve) => {
-      gltfLoader.load(
-        url,
-        (gltf: GLTF) => {
-          const { scene, controls, camera, frameArea } = this
-          const root: Scene = gltf.scene as unknown as Scene
-          scene.add(root)
-
-          // 调用动画
-          const mixer = new AnimationMixer(gltf.scene.children[2])
-          const mixers = []
-          if (gltf.animations.length > 0) {
-            mixer.clipAction(gltf.animations[0]).setDuration(1).play()
-
-            mixers.push(mixer)
-          }
-
-          this.mixers = mixers
-
-          // compute the box that contains all the stuff
-          // from root and below
-          const box = new Box3().setFromObject(root)
-
-          const boxSize = box.getSize(new Vector3()).length()
-          const boxCenter = box.getCenter(new Vector3())
-          frameArea(boxSize * 0.5, boxSize, boxCenter, camera)
-
-          // update the Trackball controls to handle the new size
-          controls.maxDistance = boxSize * 10
-          controls.target.copy(boxCenter)
-          controls.update()
-          resolve(scene)
-        },
-        onProgress,
-        onError
-      )
-    })
-  }
-
-  /**
-   * 初始化弹出层组
-   */
-  private createPopupGroup() {
-    const { scene } = this
-    const group = new Group()
-    scene.add(group)
-    this.popupGroup = group
-  }
-
   /**
    * 初始化css2dRenderer渲染器
    */
@@ -355,36 +262,6 @@ export default class M3d {
     labelRenderer.domElement.style.top = "0"
     this.labelRenderer = labelRenderer
     container.appendChild(labelRenderer.domElement)
-  }
-
-  addPopup(dom: HTMLElement | string, position: Vector3, options?: PopupOptions): CSS2DObject {
-    console.log(options)
-    const { popupGroup, container } = this
-    let div
-    if (typeof dom === "string") {
-      div = document.createElement("div")
-      div.innerHTML = dom
-    } else {
-      div = dom
-    }
-
-    container.appendChild(div)
-    const moonLabel = new CSS2DObject(div)
-    // //前两个参数是对于屏幕xy坐标,可以取负数  第三个不清楚,按道理应该是z轴坐标,不知道怎么体现
-    moonLabel.position.set(position.x, position.y, position.z)
-    moonLabel.layers.set(0)
-
-    popupGroup.add(moonLabel)
-    return moonLabel
-    // const loadedCars = root.getObjectByName('Cars');
-
-    // console.log(container)
-  }
-
-  clearPopups() {
-    const { popupGroup, labelRenderer } = this
-    popupGroup.children.forEach((object) => [popupGroup.remove(object)])
-    labelRenderer.domElement.innerHTML = ""
   }
 
   /**
@@ -482,8 +359,4 @@ export default class M3d {
   //   scene.add(earthLabel)
   //   earthLabel.layers.set(0)
   // }
-}
-
-interface PopupOptions {
-  name: string
 }

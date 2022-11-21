@@ -21,6 +21,6 @@
     "types": ["vite/client", "node"],
     "typeRoots": ["./node_modules/@types/", "./src/typings/"]
   },
-  "include": [".eslintrc.js", ".prettierrc", "src/**/*.ts", "src/**/*.d.ts"],
+  "include": [".eslintrc.js", ".prettierrc", "src/**/*.ts", "src/**/*.d.ts", "src/Background/index.js", "src/Background/index.js"],
   "files": ["src/index.ts"]
 }

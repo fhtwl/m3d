@@ -12,9 +12,11 @@ export async function init() {
   const app = document.getElementById("app")!
   const m3d = new M3d(app)
 
-  const url = "https://static.fhtwl.cc/test/gltf/scene.gltf"
+  // const url = "https://static.fhtwl.cc/test/gltf/scene.gltf"
 
-  m3d.loadGLTFModel(url).then((res) => {
+  const url = "https://static.fhtwl.cc/test/model/Sci-fi%20Vehicle%20007/scene.gltf"
+
+  m3d.LoaderManager.loadModel("gltf", url)!.then((res) => {
     console.log(res)
     console.log(res.getObjectByName("Cars"))
     // const loadedCars = res.getObjectByName("Cars")
@@ -24,25 +26,28 @@ export async function init() {
     //   })
     // })
   })
-  app.addEventListener("click", (e: MouseEvent) => {
-    const intersection = m3d.getIntersection(e)
+  // app.addEventListener("click", (e: MouseEvent) => {
+  //   const intersection = m3d.getIntersection(e)
 
-    if (intersection) {
-      console.log(intersection)
-      m3d.clearPopups()
-      console.log(intersection)
-      if (intersection.object?.parent!.name?.toLocaleLowerCase().indexOf("car") > -1) {
-        const popup = m3d.addPopup(
-          `
-        <div style='width: 100px;height: 100px;background: #fff;'>
-          ${intersection.object?.parent!.name}
-        </div>
-      `,
-          intersection.point
-        )
-      }
-    }
-  })
+  //   if (intersection) {
+  //     console.log(intersection)
+  //     m3d.PopupManager.clearPopups()
+  //     console.log(intersection)
+  //     if (intersection.object?.parent!.name?.toLocaleLowerCase().indexOf("car") > -1) {
+  //       const popup = m3d.PopupManager.addPopup(
+  //         `
+  //       <div style='width: 100px;height: 100px;background: #0C215A; color: #fff;font-size:12px'>
+  //         <div style="height: 32px;line-height: 32px;background: #0C215A">${intersection.object?.parent!.name}</div>
+  //         <div>
+  //           重量: ${Math.floor(Math.random() * 3)}
+  //         </div>
+  //       </div>
+  //     `,
+  //         intersection.point
+  //       )
+  //     }
+  //   }
+  // })
 }
 
 init()
