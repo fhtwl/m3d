@@ -16,7 +16,7 @@ import {
   Event,
   Cache,
 } from "three"
-import Plugins from "./Plugins"
+import Plugins, { PluginType } from "./Plugins"
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls"
 import { CSS2DRenderer } from "three/examples/jsm/renderers/CSS2DRenderer"
 
@@ -24,11 +24,13 @@ import { CSS2DRenderer } from "three/examples/jsm/renderers/CSS2DRenderer"
 
 import PopupManager from "./Manager/Popup"
 import LoaderManager from "./Manager/Loader"
+import { empty } from "./utils"
 
 Cache.enabled = true
 
-interface Options extends ProgramOptions {
-  el: HTMLElement
+interface Options {
+  // el: HTMLElement
+  plugins: PluginType[]
 }
 
 interface ProgramOptions {
@@ -50,10 +52,11 @@ export default class M3d {
   clock!: Clock
   PopupManager!: typeof PopupManager
   LoaderManager!: typeof LoaderManager
+  animationId!: number
   constructor(el: HTMLElement, options?: Options) {
     this.container = el
     console.log(options)
-    this.init()
+    this.init(options)
   }
 
   get width(): number {
@@ -67,9 +70,9 @@ export default class M3d {
   /**
    * 初始化
    */
-  private init() {
+  private init(options?: Options) {
     this.createRenderer()
-    this.initPlugin()
+    this.initPlugin(options?.plugins)
     this.createScene()
     this.createCamera()
     this.createClock()
@@ -83,20 +86,12 @@ export default class M3d {
   }
 
   /**
-   * 判断是不是dev环境
-   * @returns
-   */
-  getIsDev(): boolean {
-    const MODE = import.meta.env.MODE
-    return MODE === "development"
-  }
-
-  /**
    * 初始化插件
    */
-  initPlugin() {
+  initPlugin(plugins?: PluginType[]) {
     new Plugins({
       container: this.container,
+      plugins,
     })
   }
 
@@ -195,7 +190,7 @@ export default class M3d {
   private loop() {
     this.controls.update()
     this.render()
-    requestAnimationFrame(this.loop.bind(this))
+    this.animationId = requestAnimationFrame(this.loop.bind(this))
   }
 
   resize() {
@@ -249,6 +244,30 @@ export default class M3d {
     } else {
       this.camera.position.set(ve3.x, ve3.y, ve3.z)
     }
+  }
+
+  public destory() {
+    cancelAnimationFrame(this.animationId)
+    // this.scene.traverse((child) => {
+    //   if (child.material) {
+    //     child.material.dispose();
+    //   }
+    //   if (child.geometry) {
+    //     child.geometry.dispose();
+    //   }
+    //   child = null;
+    // });
+    this.container.innerHTML = ""
+    this.renderer.forceContextLoss()
+    this.renderer.dispose()
+    this.scene.clear()
+    // this.scene = undefined;
+    // this.camera = null;
+    // this.controls = null;
+    // this.renderer.domElement = null;
+    // this.renderer = null;
+    empty(this.renderer.domElement)
+    console.log("clearScene")
   }
 
   /**

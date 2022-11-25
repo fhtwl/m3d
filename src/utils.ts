@@ -52,3 +52,11 @@ export function frameArea(sizeToFitOnScreen: number, boxSize: number, boxCenter:
   // point the camera to look at the center of the box
   camera.lookAt(boxCenter.x, boxCenter.y, boxCenter.z)
 }
+
+/**
+ * 清空
+ * @param elem
+ */
+export function empty(elem: HTMLElement) {
+  while (elem.lastChild) elem.removeChild(elem.lastChild)
+}

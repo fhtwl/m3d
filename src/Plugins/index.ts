@@ -2,7 +2,7 @@ import Performance from "./Performance"
 
 type DevPluginType = "performance"
 
-type PluginType = DevPluginType | "ad"
+export type PluginType = DevPluginType | "ad"
 
 interface PluginOptions {
   container: HTMLElement
@@ -12,19 +12,19 @@ export default class Plugin {
   container!: HTMLElement
   loopList: (() => void)[] = []
   plugins: PluginType[] = []
-  devPlugins: PluginType[] = ["performance"]
+  // devPlugins: PluginType[] = ["performance"]
   constructor(options: PluginOptions) {
     this.init(options)
   }
 
-  get isDev(): boolean {
-    const MODE = import.meta.env.MODE
-    return MODE === "development"
-  }
+  // get isDev(): boolean {
+  //   const MODE = import.meta.env.MODE
+  //   return MODE === "development"
+  // }
   init(options: PluginOptions) {
-    const { container, plugins = [...this.devPlugins] } = options
+    const { container, plugins } = options
     this.container = container
-    this.plugins = plugins
+    this.plugins = plugins || []
     this.initPlugins()
     this.loop()
   }
@@ -40,10 +40,10 @@ export default class Plugin {
    * 初始化插件
    */
   private initPlugins() {
-    const { plugins, container, loopList, devPlugins, isDev } = this
+    const { plugins, container, loopList } = this
     // 生产环境下排除仅dev环境才生效的插件
-    const productPlugins = plugins.filter((str) => isDev || !devPlugins.includes(str))
-    productPlugins.forEach((plugin) => {
+    // const productPlugins = plugins.filter((str) => isDev || !devPlugins.includes(str))
+    plugins.forEach((plugin) => {
       switch (plugin) {
         case "performance": {
           const performance = new Performance({ container })

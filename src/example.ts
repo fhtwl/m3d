@@ -10,7 +10,9 @@ import M3d from "./M3d"
 
 export async function init() {
   const app = document.getElementById("app")!
-  const m3d = new M3d(app)
+  const m3d = new M3d(app, {
+    plugins: ["performance"],
+  })
 
   // const url = "https://static.fhtwl.cc/test/gltf/scene.gltf"
 

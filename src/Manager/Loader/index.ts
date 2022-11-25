@@ -1,4 +1,4 @@
-import { frameArea } from "@/utils"
+import { frameArea } from "../../utils"
 import { AnimationMixer, Box3, LoadingManager, PerspectiveCamera, Scene, Vector3 } from "three"
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls"
 import { GLTF, GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader"

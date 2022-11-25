@@ -1,11 +1,12 @@
 {
   "name": "m3d",
-  "version": "1.0.2",
+  "version": "1.0.8",
   "description": "基于threejs的gltf3d模型浏览工具, 以及3d场景和模型常见交互方法",
   "main": "./build/src/index.js",
+  "types": "./build/src/index.d.ts",
   "scripts": {
     "dev": "vite --mode development",
-    "build": " vite build --mode production",
+    "build": "tsc -d && tsc",
     "preview": "vite preview",
     "lint": "eslint . --ext .vue,.ts,.jsx,.tsx --fix",
     "format": "prettier --write ./**/*.{vue,ts,tsx,js,jsx,css,less,scss,json,md}",
@@ -40,6 +41,7 @@
   "dependencies": {
     "@types/stats.js": "^0.17.0",
     "stats.js": "^0.17.0",
+    "tern": "^0.24.3",
     "three": "^0.146.0"
   }
 }
