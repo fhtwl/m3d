@@ -1,0 +1,9 @@
+/src
+vite.config.ts
+index.html
+.prettierrc
+.eslintrc.json
+.env
+.env.development
+.env.production
+.gitignore

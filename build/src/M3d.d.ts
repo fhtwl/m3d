@@ -4,12 +4,8 @@ import { OrbitControls } from "three/examples/jsm/controls/OrbitControls";
 import { CSS2DRenderer } from "three/examples/jsm/renderers/CSS2DRenderer";
 import PopupManager from "./Manager/Popup";
 import LoaderManager from "./Manager/Loader";
-interface Options extends ProgramOptions {
+interface Options {
     plugins: PluginType[];
-}
-interface ProgramOptions {
-    vertexShaderSource: string;
-    fragmentShaderSource: string;
 }
 export default class M3d {
     gl: WebGLRenderingContext;

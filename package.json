@@ -6,7 +6,7 @@
   "types": "./build/src/index.d.ts",
   "scripts": {
     "dev": "vite --mode development",
-    "build": "tsc -d && tsc",
+    "build": "tsc -d",
     "preview": "vite preview",
     "lint": "eslint . --ext .vue,.ts,.jsx,.tsx --fix",
     "format": "prettier --write ./**/*.{vue,ts,tsx,js,jsx,css,less,scss,json,md}",

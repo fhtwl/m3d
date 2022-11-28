@@ -54,7 +54,7 @@ export function frameArea(sizeToFitOnScreen: number, boxSize: number, boxCenter:
 }
 
 /**
- * 清空
+ * 清空子节点
  * @param elem
  */
 export function empty(elem: HTMLElement) {

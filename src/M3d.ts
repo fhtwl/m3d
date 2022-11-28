@@ -15,6 +15,7 @@ import {
   Mesh,
   Event,
   Cache,
+  Box3,
 } from "three"
 import Plugins, { PluginType } from "./Plugins"
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls"
@@ -24,7 +25,7 @@ import { CSS2DRenderer } from "three/examples/jsm/renderers/CSS2DRenderer"
 
 import PopupManager from "./Manager/Popup"
 import LoaderManager from "./Manager/Loader"
-import { empty } from "./utils"
+import { empty, frameArea } from "./utils"
 
 Cache.enabled = true
 
@@ -111,9 +112,9 @@ export default class M3d {
    */
   private createHemisphereLight() {
     const { scene } = this
-    const skyColor = 0xb1e1ff // light blue
-    const groundColor = 0xb97a20 // brownish orange
-    const intensity = 0.6
+    const skyColor = 0xffffff
+    const groundColor = 0xffffff
+    const intensity = 0.7
     const light = new HemisphereLight(skyColor, groundColor, intensity)
     scene.add(light)
   }
@@ -122,19 +123,13 @@ export default class M3d {
    * 创建方向光，模拟太阳光
    */
   private createDirectionalLight() {
-    const { camera } = this
+    const { scene } = this
 
     const color = 0xffffff
-    const intensity = 1
+    const intensity = 0.7
     const light = new DirectionalLight(color, intensity)
     light.position.set(5, 10, 2)
-    camera.add(light)
-    // scene.add(light.target)
-
-    const light2 = new DirectionalLight(0xffffff, 0.8 * Math.PI)
-    light2.position.set(0.5, 0, 0.866) // ~60º
-    light2.name = "main_light"
-    camera.add(light2)
+    scene.add(light)
   }
 
   /**
@@ -345,6 +340,21 @@ export default class M3d {
       }
     }
     return arrList
+  }
+
+  /**
+   * 将相机对齐到场景中心
+   */
+  resetCamera() {
+    const { scene, camera, controls } = this
+    const box = new Box3().setFromObject(scene)
+
+    const boxSize = box.getSize(new Vector3()).length()
+    const boxCenter = box.getCenter(new Vector3())
+    frameArea(boxSize * 0.8, boxSize, boxCenter, camera)
+    controls.maxDistance = boxSize * 10
+    controls.target.copy(boxCenter)
+    controls.update()
   }
   // /**
   //  * 获取拾取到的元素，并执行回调函数

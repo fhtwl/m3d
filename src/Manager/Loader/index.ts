@@ -1,5 +1,5 @@
 import { frameArea } from "../../utils"
-import { AnimationMixer, Box3, LoadingManager, PerspectiveCamera, Scene, Vector3 } from "three"
+import { AnimationMixer, Box3, LoadingManager, PerspectiveCamera, Scene, Vector3, Group } from "three"
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls"
 import { GLTF, GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader"
 
@@ -11,6 +11,12 @@ interface LoaderOptions {
   camera: PerspectiveCamera
 }
 
+export interface ModalLoadOption {
+  url: string
+  position?: [number, number, number]
+  callback?: (scene: Group) => unknown
+}
+
 export default class LoaderManager {
   static container: HTMLElement
 
@@ -18,6 +24,7 @@ export default class LoaderManager {
   static mixers: AnimationMixer[]
   static controls: OrbitControls
   static camera: PerspectiveCamera
+  static loadManager: LoadingManager
 
   static init({ container, scene, controls, camera }: LoaderOptions) {
     this.container = container
@@ -99,5 +106,54 @@ export default class LoaderManager {
         resolve(scene)
       })
     })
+  }
+
+  /**
+   * 加载多个gltf模型
+   * @param models
+   * @returns
+   */
+  static async loadGLTFModels(models: ModalLoadOption[]): Promise<Group[]> {
+    const loadManager = new LoadingManager()
+    LoaderManager.loadManager = loadManager
+    return Promise.all(
+      models.map(({ url, callback, position }): Promise<Group> => {
+        const gltfLoader = new GLTFLoader(loadManager) // 实时显示进度
+          .setCrossOrigin("anonymous") // 设置image的CrossOrigin模式
+
+        return new Promise((resolve) => {
+          gltfLoader.load(url, (gltf: GLTF) => {
+            const { scene, controls, camera } = this
+            const root = gltf.scene
+            scene.add(root)
+            if (position) {
+              root.position.set(...position)
+            }
+
+            // 调用动画
+            const mixer = new AnimationMixer(gltf.scene.children[2])
+            const mixers = []
+            if (gltf.animations.length > 0) {
+              mixer.clipAction(gltf.animations[0]).setDuration(1).play()
+
+              mixers.push(mixer)
+            }
+
+            this.mixers = mixers
+
+            // compute the box that contains all the stuff
+            // from root and below
+
+            if (callback) {
+              callback(root)
+            }
+            resolve(root)
+          })
+        })
+      })
+    )
+    // .then(res => {
+
+    // })
   }
 }
